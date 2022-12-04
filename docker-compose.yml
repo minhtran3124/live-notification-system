@@ -1,0 +1,39 @@
+version: "3.9"
+services:
+  web_channel:
+    build: .
+    command: gunicorn --config=gunicorn.channel.conf.py
+    volumes:
+      - socket_data:/tmp/gunicorn/
+    restart: unless-stopped
+
+  web_app:
+    build: .
+    command: gunicorn --config=gunicorn.app.conf.py
+    volumes:
+      - static_data:/var/www/mysite/static/
+      - socket_data:/tmp/gunicorn/
+    restart: unless-stopped
+
+  nginx:
+    depends_on:
+      - web_app
+      - web_channel
+    build: nginx/
+    ports:
+      - '8888:80'
+    volumes:
+      - static_data:/var/www/mysite/static/:ro
+      - socket_data:/tmp/gunicorn/
+    restart: unless-stopped
+
+  redis:
+    image: redis
+    command: redis-server --requirepass mypassword
+    ports:
+      - '6666:6379'
+    restart: unless-stopped
+
+volumes:
+  static_data:
+  socket_data:
